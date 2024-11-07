@@ -70,5 +70,9 @@ def sha256(mensaje):
     # Concatenar y producir el hash final
     return ''.join(f'{value:08x}' for value in H)
 
+def main():
 
+    mensaje = input("Ingrese el mensaje a cifrar: ")
+    print("El hash SHA-256 del mensaje es:", sha256(mensaje))    
 
+main()
