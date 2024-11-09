@@ -69,6 +69,3 @@ def sha256(mensaje):
 
     # Concatenar y producir el hash final
     return ''.join(f'{value:08x}' for value in H)
-
-
-
