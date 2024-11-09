@@ -69,8 +69,6 @@ def sha256(mensaje):
 
     # Concatenar y producir el hash final
     return ''.join(f'{value:08x}' for value in H)
-<<<<<<< HEAD
-=======
 
 def main():
 
@@ -78,4 +76,4 @@ def main():
     print("El hash SHA-256 del mensaje es:", sha256(mensaje))    
 
 main()
-#6fdb3afe680dc38a20eb909a081a79ae49dce38c
+
