@@ -1,4 +1,5 @@
 import struct
+import cryptography
 import os
 import sqlite3
 
