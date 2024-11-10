@@ -121,6 +121,9 @@ conn.execute('''CREATE TABLE IF NOT EXISTS users (
                     hash TEXT NOT NULL
                 )''')
 
+
+
+
 def main():
     register_user("Daniel", "password", conn)
     login_user("pene", "123", conn)
