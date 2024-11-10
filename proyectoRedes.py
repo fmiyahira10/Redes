@@ -125,5 +125,4 @@ def main():
     register_user("Daniel", "password", conn)
     login_user("pene", "123", conn)
     conn.close()
-
 main()
