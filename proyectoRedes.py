@@ -80,8 +80,6 @@ def sha256(mensaje):
 def hash_con_sal(password):
     salt = os.urandom(16).hex()
     hash_salado = sha256(salt + password)
-    print(f"Sal: {salt}")
-    print(f"Hash salado: {hash_salado}")
     return salt, hash_salado
 
 def verify_password(sal_almacenada, hash_almacenado, contra):
@@ -89,11 +87,15 @@ def verify_password(sal_almacenada, hash_almacenado, contra):
     return hash_value == hash_almacenado
 
 def register_user(usuario, contra, conn):
-    salt, hashed_password = hash_con_sal(contra)
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO users (username, salt, hash) VALUES (?, ?, ?)", (usuario, salt, hashed_password))
-    conn.commit()
-    print(f"Usuario {usuario} registrado exitosamente.")
+    try:
+        salt, hashed_password = hash_con_sal(contra)
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO users (username, salt, hash) VALUES (?, ?, ?)", (usuario, salt, hashed_password))
+        conn.commit()
+        print(f"Usuario {usuario} registrado exitosamente.")
+    except sqlite3.IntegrityError:
+        print(f"El usuario '{usuario}' ya existe.")
+
 
 def login_user(username, password, conn):
     cursor = conn.cursor()
@@ -119,7 +121,7 @@ conn.execute('''CREATE TABLE IF NOT EXISTS users (
                 )''')
 
 def main():
-    register_user("Daniel", "123", conn)
+    register_user("Daniel", "password", conn)
     login_user("pene", "123", conn)
     conn.close()
 
