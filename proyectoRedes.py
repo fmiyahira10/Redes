@@ -2,6 +2,8 @@ import struct
 import cryptography
 import os
 import sqlite3
+from datetime import datetime
+
 
 # Valores iniciales de los registros hash (H)
 H_INICIAL = [
@@ -112,6 +114,20 @@ def login_user(username, password, conn):
     else:
         print("Usuario no encontrado.")
 
+def resgitrar_timestamp(conn,datos,descripcion=""):
+    data_hash=sha256(datos)
+    timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    cursor=conn.cursor()
+    cursor.execute("""INSERT INTO data_timestamps(data_hash,timestamp,description)
+                      value (?,?,?)""",(data_hash,timestamp,descripcion))
+    conn.commit()
+    print(f"Hash registrado: {data_hash} con timestamp: {timestamp}")
+
+def verificar_integridad(conn,hash_registrado):
+    cursor=conn.cursor
+    cursor.execute("SELECT * FROM data_timestamps WHERE data_hash=?",(hash_registrado,))
+    resultado=cursor.fetchone
+
 # Separado
 conn = sqlite3.connect('usuarios.db')
 conn.execute('''CREATE TABLE IF NOT EXISTS users (
@@ -120,8 +136,6 @@ conn.execute('''CREATE TABLE IF NOT EXISTS users (
                     salt TEXT NOT NULL,
                     hash TEXT NOT NULL
                 )''')
-
-
 
 
 def main():
