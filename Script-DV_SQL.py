@@ -33,7 +33,7 @@ def query_procesado(connection, query, ip_usuario):
         connection.commit()
 
 if __name__=="__main__":
-    conn=sqlite3.connect("usuarios.db")
+    conn=sqlite3.connect('usuarios.db')
     query="SELECT * FROM users WHERE username = 'admin' OR 1=1"
     ip_usuario="192.168.1.1"
 
