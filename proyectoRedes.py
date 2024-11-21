@@ -1,5 +1,6 @@
 import struct
-import cryptography
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import serialization, hashes
 import os
 import sqlite3
 from datetime import datetime
@@ -85,20 +86,43 @@ def hash_con_sal(password):
     hash_salado = sha256(salt + password)
     return salt, hash_salado
 
+def generar_claves_rsa():
+    privateK=rsa.generate_private_key(public_exponent=65537,key_size=2048)
+    publicK = privateK.public_key()
+    return privateK, publicK
+
+def saveK(privateK, publicK):
+    with open('private_key.pem', 'wb') as private_file:
+        private_file.write(privateK.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption()
+        ))
+    
+    with open('public_key.pem', 'wb') as public_file:
+        public_file.write(publicK.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        ))
+
+def cargar_clave_publica():
+    with open('public_key.pem', 'rb') as public_file:
+        return serialization.load_pem_public_key(public_file.read())
+
+
+
 def verify_password(sal_almacenada, hash_almacenado, contra):
     hash_value = sha256(sal_almacenada + contra)
     return hash_value == hash_almacenado
 
 def register_user(usuario, contra, conn):
+    salt, hashed_password = hash_con_sal(contra)
     try:
-        salt, hashed_password = hash_con_sal(contra)
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO users (username, salt, hash) VALUES (?, ?, ?)", (usuario, salt, hashed_password))
-        conn.commit()
+        with conn:
+            conn.execute("INSERT INTO users (username, salt, hash) VALUES (?, ?, ?)", (usuario, salt, hashed_password))
         print(f"Usuario {usuario} registrado exitosamente.")
     except sqlite3.IntegrityError:
-        print(f"El usuario '{usuario}' ya existe.")
-
+        print(f"El usuario ya existe.")
 
 def login_user(username, password, conn):
     cursor = conn.cursor()
@@ -119,7 +143,7 @@ def resgitrar_timestamp(conn,datos,descripcion=""):
     timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     cursor=conn.cursor()
     cursor.execute("""INSERT INTO data_timestamps(data_hash,timestamp,description)
-                      value (?,?,?)""",(data_hash,timestamp,descripcion))
+                      VALUES (?,?,?)""",(data_hash,timestamp,descripcion))
     conn.commit()
     print(f"Hash registrado: {data_hash} con timestamp: {timestamp}")
 
@@ -127,6 +151,13 @@ def verificar_integridad(conn,hash_registrado):
     cursor=conn.cursor
     cursor.execute("SELECT * FROM data_timestamps WHERE data_hash=?",(hash_registrado,))
     resultado=cursor.fetchone
+    if resultado:
+        print("El hash coincide con el registro existente.")
+    else:
+        print("El hash no coincide con el registro existente.")
+
+
+
 
 # Separado
 conn = sqlite3.connect('usuarios.db')
