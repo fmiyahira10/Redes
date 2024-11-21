@@ -1,4 +1,5 @@
 import sqlite3
+import socket
 import re
 
 Patrones=[
@@ -15,7 +16,9 @@ def SQLinyeccion_Deteccion(query):
     return False
 
 
-def intento_log(connection, query, ip_usuario, estado):
+def intento_log(connection, query, estado):
+    hostname=socket.gethostname()
+    ip_usuario=socket.gethostbyname(hostname) #obtener IP local
     cursor = connection.cursor()
     cursor.execute("""
         INSERT INTO sql_injection_logs (query, user_ip, status)
@@ -23,7 +26,9 @@ def intento_log(connection, query, ip_usuario, estado):
     """, (query,ip_usuario,estado))
     connection.commit()
 
-def query_procesado(connection, query, ip_usuario):
+def query_procesado(connection, query):
+    hostname=socket.gethostname()
+    ip_usuario=socket.gethostbyname(hostname) #obtener IP local
     if SQLinyeccion_Deteccion(query):
         intento_log(connection,query,ip_usuario,"Bloqueado")
         raise ValueError("Potencial SQL inyeccion detectado")
@@ -42,4 +47,3 @@ if __name__=="__main__":
     except ValueError as e:
         print("Alerta: ", e)
     conn.close
-
