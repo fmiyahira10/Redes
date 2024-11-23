@@ -111,7 +111,11 @@ def cargar_clave_publica():
     with open('public_key.pem', 'rb') as public_file:
         return serialization.load_pem_public_key(public_file.read())
 
+def cifrar_datos(public_key,data):
+    return public_key.encrypt(data.encode('utf-8'),padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(),label=None))
 
+def descifrar_datos(private_key, encrypted_data):
+    return private_key.decrypt(encrypted_data, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(), label=None)).decode('utf-8')
 
 def verify_password(sal_almacenada, hash_almacenado, contra):
     hash_value = sha256(sal_almacenada + contra)
@@ -176,5 +180,15 @@ conn.execute('''CREATE TABLE IF NOT EXISTS users (
 def main():
     register_user("Daniel", "password", conn)
     login_user("pene", "123", conn)
+    private_key,public_key=generar_claves_rsa()
+    saveK(private_key,public_key)
+    resgistrar_timestamp(conn,"Hola mundo")
+    verificar_integridad(conn,"Hola mundo")
+    hash_mensaje=sha256(register_user)
+    hash_encriptado=cifrar_datos(public_key,hash_mensaje)
+
+    print(f"Hash cifrado: {hash_encriptado}")
+    print(f"Hash original: {descifrar_datos(private_key,hash_encriptado)}")
+
     conn.close()
 main()
