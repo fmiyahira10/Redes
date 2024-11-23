@@ -4,6 +4,7 @@ from cryptography.hazmat.primitives import serialization, hashes
 import os
 import sqlite3
 from datetime import datetime
+import base64
 
 
 # Valores iniciales de los registros hash (H)
@@ -82,8 +83,9 @@ def sha256(mensaje):
     return ''.join(f'{value:08x}' for value in H)
 
 def hash_con_sal(password):
-    salt = os.urandom(16).hex()
-    hash_salado = sha256(salt + password)
+    salt = base64.b64decode(os.urandom(16)).decode('utf-8')
+    
+    hash_salado = sha256((salt + password).encode('utf-8'))
     return salt, hash_salado
 
 def generar_claves_rsa():
@@ -123,6 +125,8 @@ def register_user(usuario, contra, conn):
         print(f"Usuario {usuario} registrado exitosamente.")
     except sqlite3.IntegrityError:
         print(f"El usuario ya existe.")
+    except Exception as e:
+        print(f"Error al registrar usuario: {e}")
 
 def login_user(username, password, conn):
     cursor = conn.cursor()
@@ -138,7 +142,7 @@ def login_user(username, password, conn):
     else:
         print("Usuario no encontrado.")
 
-def resgitrar_timestamp(conn,datos,descripcion=""):
+def resgistrar_timestamp(conn,datos,descripcion=""):
     data_hash=sha256(datos)
     timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     cursor=conn.cursor()
@@ -148,9 +152,9 @@ def resgitrar_timestamp(conn,datos,descripcion=""):
     print(f"Hash registrado: {data_hash} con timestamp: {timestamp}")
 
 def verificar_integridad(conn,hash_registrado):
-    cursor=conn.cursor
+    cursor=conn.cursor()
     cursor.execute("SELECT * FROM data_timestamps WHERE data_hash=?",(hash_registrado,))
-    resultado=cursor.fetchone
+    resultado=cursor.fetchone()
     if resultado:
         print("El hash coincide con el registro existente.")
     else:
