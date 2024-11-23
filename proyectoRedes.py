@@ -134,7 +134,7 @@ def register_user(usuario, contra, conn):
 
 def login_user(username, password, conn):
     cursor = conn.cursor()
-    cursor.execute("SELECT salt, hash FROM users WHERE username = ?", (username,))
+    cursor.execute("SELECT salt, hash FROM users WHERE username = ?", (username))
     result = cursor.fetchone()
     
     if result:
@@ -164,11 +164,8 @@ def verificar_integridad(conn,hash_registrado):
     else:
         print("El hash no coincide con el registro existente.")
 
-
-
-
 # Separado
-conn = sqlite3.connect('usuarios.db')
+conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), 'Interfaz', 'BaseDatos', 'usuarios.db')) ##NO CAMBIAR
 conn.execute('''CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT NOT NULL UNIQUE,

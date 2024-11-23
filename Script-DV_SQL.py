@@ -1,49 +1,56 @@
+import os
 import sqlite3
 import socket
 import re
 
-Patrones=[
-    r"(?:'|--|\bOR\b|\bAND\b).*?(?:--|;)", #uso de comentarios y palabras clave
-    r"(?:\bUNION\b|\bSELECT\b).*?\bFROM\b", #intentos de UNION SELECT
-    r"(?:DROP|ALTER|DELETE|INSERT).*" #comandos peligroso
+Patrones = [
+    r"(?:'|--|\bOR\b|\bAND\b).*?(?:--|;)",  # uso de comentarios y palabras clave
+    r"(?:\bUNION\b|\bSELECT\b).*?\bFROM\b",  # intentos de UNION SELECT
+    r"(?:DROP|ALTER|DELETE|INSERT).*"  # comandos peligrosos
 ]
 
+conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), 'Interfaz', 'BaseDatos', 'usuarios.db')) ##NO CAMBIAR
+conn.execute('''CREATE TABLE IF NOT EXISTS sql_injection_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    query TEXT NOT NULL,
+                    user_ip TEXT NOT NULL,
+                    status TEXT NOT NULL
+                )''')
 
 def SQLinyeccion_Deteccion(query):
     for patron in Patrones:
-        if re.search(patron, query,re.IGNORECASE):
+        if re.search(patron, query, re.IGNORECASE):
             return True
     return False
 
-
-def intento_log(connection, query, estado):
-    hostname=socket.gethostname()
-    ip_usuario=socket.gethostbyname(hostname) #obtener IP local
+def intento_log(connection, query):
+    hostname = socket.gethostname()
+    ip_usuario = socket.gethostbyname(hostname)  # obtener IP local
     cursor = connection.cursor()
     cursor.execute("""
         INSERT INTO sql_injection_logs (query, user_ip, status)
         VALUES (?, ?, ?)
-    """, (query,ip_usuario,estado))
+    """, (query, ip_usuario, "BLOQUEADO")) ##Abierto a otras opciones
     connection.commit()
 
-def query_procesado(connection, query):
-    hostname=socket.gethostname()
-    ip_usuario=socket.gethostbyname(hostname) #obtener IP local
-    if SQLinyeccion_Deteccion(query):
-        intento_log(connection,query,ip_usuario,"Bloqueado")
+def validar_credenciales(connection, username, password):
+    if SQLinyeccion_Deteccion(username) or SQLinyeccion_Deteccion(password):
+        intento_log(connection, f"username: {username}, password: {password}")
         raise ValueError("Potencial SQL inyeccion detectado")
     else:
-        cursor=connection.cursor()
-        cursor.execute(query)
-        connection.commit()
+        return True
 
-if __name__=="__main__":
-    conn=sqlite3.connect('usuarios.db')
-    query="SELECT * FROM users WHERE username = 'admin' OR 1=1"
-    ip_usuario="192.168.1.1"
+if __name__ == "__main__":
+
+    username = "admin"
+    password = "password123"
 
     try:
-        query_procesado(conn, query, ip_usuario)
+        if validar_credenciales(conn, username, password):
+            print("Credenciales válidas")
+        else:
+            print("Credenciales inválidas")
     except ValueError as e:
         print("Alerta: ", e)
-    conn.close
+
+    conn.close()
