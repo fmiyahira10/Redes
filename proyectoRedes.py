@@ -6,7 +6,6 @@ import sqlite3
 from datetime import datetime
 import base64
 
-
 # Valores iniciales de los registros hash (H)
 H_INICIAL = [
     0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
@@ -122,10 +121,10 @@ def verify_password(sal_almacenada, hash_almacenado, contra):
     return hash_value == hash_almacenado
 
 def register_user(usuario, contra, conn):
-    salt, hashed_password = hash_con_sal(contra)
+    salt, hashed_salado = hash_con_sal(contra)
     try:
         with conn:
-            conn.execute("INSERT INTO users (username, salt, hash) VALUES (?, ?, ?)", (usuario, salt, hashed_password))
+            conn.execute("INSERT INTO users (username, salt, hash) VALUES (?, ?, ?)", (usuario, salt, hashed_salado))
         print(f"Usuario {usuario} registrado exitosamente.")
     except sqlite3.IntegrityError:
         print(f"El usuario ya existe.")

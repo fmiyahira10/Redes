@@ -41,7 +41,8 @@ def validar_credenciales(connection, username, password):
         return True
 
 if __name__ == "__main__":
-
+    ## ejemplo de SQL Inyect
+    ## query="SELECT * FROM users WHERE username = 'admin' OR 1=1" 
     username = "admin"
     password = "password123"
 
