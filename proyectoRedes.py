@@ -94,6 +94,14 @@ def generar_claves_rsa():
     publicK = privateK.public_key()
     return privateK, publicK
 
+def cargar_clave_privada(path):
+    with open(path, 'rb') as private_file:
+        return serialization.load_pem_private_key(private_file.read(), password=None) ##Se le puede asignar clave
+
+def cargar_clave_publica(path):
+    with open(path, 'rb') as public_file:
+        return serialization.load_pem_public_key(public_file.read())
+    
 def saveK(privateK, publicK): ## Guarda las claves en archivos
     with open('private_key.pem', 'wb') as private_file:
         private_file.write(privateK.private_bytes(
@@ -108,16 +116,6 @@ def saveK(privateK, publicK): ## Guarda las claves en archivos
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         ))
 
-def cargar_clave_privada():
-    key_path = os.path.join(os.path.dirname(__file__), 'private_key.pem')
-    with open(key_path, 'rb') as private_file:
-        return serialization.load_pem_private_key(private_file.read(), password=None) ##Se le puede asignar clave
-
-def cargar_clave_publica():
-    key_path = os.path.join(os.path.dirname(__file__), 'public_key.pem')
-    with open(key_path, 'rb') as public_file:
-        return serialization.load_pem_public_key(public_file.read())
-
 def cifrar_datos(public_key,data): ##Cifra los datos con la clave publica en bytes
     return public_key.encrypt(data.encode('utf-8'),padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(),label=None))
 
@@ -130,7 +128,8 @@ def verify_password(sal_almacenada, hash_almacenado, contra):
 
 def register_user(usuario, contra, conn):
     salt, hashed_salado = hash_con_sal(contra)
-    timestamp, signature = generar_sello_criptografico(hashed_salado, cargar_clave_privada())
+    path = os.path.join(os.path.dirname(__file__), 'private_key.pem')
+    timestamp, signature = generar_sello_criptografico(hashed_salado, cargar_clave_privada(path))
     try:
         with conn:
             conn.execute("INSERT INTO users (username, salt, hash, Timestamp, firma) VALUES (?, ?, ?, ?, ?)", (usuario, salt, hashed_salado, timestamp, sqlite3.Binary(signature)))
@@ -203,29 +202,32 @@ conn.execute('''CREATE TABLE IF NOT EXISTS users (
 
 
 def main():
+    
+    ROOT_DIR = os.path.dirname(__file__)
+    PRIVATE_KEY_PATH = os.path.join(ROOT_DIR, 'private_key.pem')
+    PUBLIC_KEY_PATH = os.path.join(ROOT_DIR, 'public_key.pem')
+
+    # Verificar si las claves existen (unificado para main.py)
+    if not os.path.exists(PRIVATE_KEY_PATH) or not os.path.exists(PUBLIC_KEY_PATH):
+        print("Claves no encontradas, generando nuevas...")
+        private_key, public_key = generar_claves_rsa()
+        saveK(private_key, public_key, PRIVATE_KEY_PATH, PUBLIC_KEY_PATH)
+        print(f"Claves generadas y guardadas en:\n{PRIVATE_KEY_PATH}\n{PUBLIC_KEY_PATH}")
+    else:
+        print("Claves existentes encontradas. Cargando...")
+        private_key = cargar_clave_privada(PRIVATE_KEY_PATH)
+        public_key = cargar_clave_publica(PUBLIC_KEY_PATH)
+        print("Claves cargadas correctamente.")
+
     register_user("Daniel", "password", conn)
     register_user("Admin", "soyadmin", conn)
-    private_key,public_key=generar_claves_rsa()
-    saveK(private_key,public_key)
-    if not os.path.exists('private_key.pem') or not os.path.exists('public_key.pem'):
-        private_key, public_key = generar_claves_rsa()
-        saveK(private_key, public_key)
-    else:
-        private_key = cargar_clave_privada()
-        public_key = cargar_clave_publica()
-    ##cursor = conn.cursor()
-    ##cursor.execute("SELECT hash, Timestamp, firma FROM users WHERE username = ?", ("Daniel",))
-    ##result = cursor.fetchone()
-    ##hash_salado, timestamp, signature = result
-    ##signature = bytes(signature)
-    ##verificar_sello_criptografico(hash_salado, timestamp, signature, public_key)
 
+    hash_mensaje=sha256("123")
+    print(hash_mensaje)
+    hash_encriptado=cifrar_datos(public_key,hash_mensaje)
 
-    #hash_mensaje=sha256(register_user)
-    ##hash_encriptado=cifrar_datos(public_key,hash_mensaje)
-
-    ##print(f"Hash cifrado: {hash_encriptado}")
-    ##print(f"Hash original: {descifrar_datos(private_key,hash_encriptado)}")
+    print(f"Hash cifrado: {hash_encriptado}")
+    print(f"Hash original: {descifrar_datos(private_key,hash_encriptado)}")
 
     conn.close()
 main()
