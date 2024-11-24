@@ -51,6 +51,5 @@ def login():
         flash(f'Alerta: {e}', 'danger')
         return redirect(url_for('home'))
     
-
 if __name__ == '__main__':
     app.run(debug=True)

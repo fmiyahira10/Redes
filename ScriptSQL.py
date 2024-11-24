@@ -14,7 +14,8 @@ conn.execute('''CREATE TABLE IF NOT EXISTS sql_injection_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     query TEXT NOT NULL,
                     user_ip TEXT NOT NULL,
-                    status TEXT NOT NULL
+                    status TEXT NOT NULL,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
                 )''')
 
 def SQLinyeccion_Deteccion(query):
@@ -28,8 +29,8 @@ def intento_log(connection, query):
     ip_usuario = socket.gethostbyname(hostname)  # obtener IP local
     cursor = connection.cursor()
     cursor.execute("""
-        INSERT INTO sql_injection_logs (query, user_ip, status)
-        VALUES (?, ?, ?)
+        INSERT INTO sql_injection_logs (query, user_ip, status, timestamp)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
     """, (query, ip_usuario, "BLOQUEADO")) ##Abierto a otras opciones
     connection.commit()
 
@@ -43,15 +44,5 @@ def validar_credenciales(connection, username, password):
 if __name__ == "__main__":
     ## ejemplo de SQL Inyect
     ## query="SELECT * FROM users WHERE username = 'admin' OR 1=1" 
-    username = "admin"
-    password = "password123"
-
-    try:
-        if validar_credenciales(conn, username, password):
-            print("Credenciales válidas")
-        else:
-            print("Credenciales inválidas")
-    except ValueError as e:
-        print("Alerta: ", e)
-
+    
     conn.close()

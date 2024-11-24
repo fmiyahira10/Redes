@@ -203,8 +203,8 @@ conn.execute('''CREATE TABLE IF NOT EXISTS users (
 
 
 def main():
-    ##register_user("Daniel", "password", conn)
-    ##register_user("Admin", "soyadmin", conn)
+    register_user("Daniel", "password", conn)
+    register_user("Admin", "soyadmin", conn)
     ##login_user("pene", "123", conn)
     private_key,public_key=generar_claves_rsa()
     saveK(private_key,public_key)
