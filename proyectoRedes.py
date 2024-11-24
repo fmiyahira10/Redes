@@ -111,17 +111,17 @@ def saveK(privateK, publicK): ## Guarda las claves en archivos
 def cargar_clave_privada():
     key_path = os.path.join(os.path.dirname(__file__), 'private_key.pem')
     with open(key_path, 'rb') as private_file:
-        return serialization.load_pem_private_key(private_file.read(), password=None)
+        return serialization.load_pem_private_key(private_file.read(), password=None) ##Se le puede asignar clave
 
 def cargar_clave_publica():
     key_path = os.path.join(os.path.dirname(__file__), 'public_key.pem')
     with open(key_path, 'rb') as public_file:
         return serialization.load_pem_public_key(public_file.read())
 
-def cifrar_datos(public_key,data):
+def cifrar_datos(public_key,data): ##Cifra los datos con la clave publica en bytes
     return public_key.encrypt(data.encode('utf-8'),padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(),label=None))
 
-def descifrar_datos(private_key, encrypted_data):
+def descifrar_datos(private_key, encrypted_data): ##Descifra los datos con la clave privada de bytes a texto
     return private_key.decrypt(encrypted_data, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(), label=None)).decode('utf-8')
 
 def verify_password(sal_almacenada, hash_almacenado, contra):
@@ -205,10 +205,14 @@ conn.execute('''CREATE TABLE IF NOT EXISTS users (
 def main():
     register_user("Daniel", "password", conn)
     register_user("Admin", "soyadmin", conn)
-    ##login_user("pene", "123", conn)
     private_key,public_key=generar_claves_rsa()
     saveK(private_key,public_key)
-
+    if not os.path.exists('private_key.pem') or not os.path.exists('public_key.pem'):
+        private_key, public_key = generar_claves_rsa()
+        saveK(private_key, public_key)
+    else:
+        private_key = cargar_clave_privada()
+        public_key = cargar_clave_publica()
     ##cursor = conn.cursor()
     ##cursor.execute("SELECT hash, Timestamp, firma FROM users WHERE username = ?", ("Daniel",))
     ##result = cursor.fetchone()
