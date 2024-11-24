@@ -5,7 +5,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from ScriptSQL import validar_credenciales
-from proyectoRedes import cargar_clave_privada, cargar_clave_publica, login_user, verificar_sello_criptografico
+from proyectoRedes import cargar_clave_privada, cargar_clave_publica, login_user, register_user, verificar_sello_criptografico
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Necesario para usar flash messages
@@ -53,7 +53,29 @@ def login():
     except ValueError as e:
         flash(f'Alerta: {e}', 'danger')
         return redirect(url_for('home'))
-    
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        db = Database()
+        db.connect()  # Conectar a la base de datos
+        if not db.connection:
+            flash('Error al conectar a la base de datos.', 'danger')
+            return redirect(url_for('register'))
+        
+        username = request.form['username']
+        password = request.form['password']
+        
+        try:
+            register_user(username, password, db.connection, private_key)
+            flash('Usuario registrado exitosamente.', 'success')
+            return redirect(url_for('home'))
+        except ValueError as e:
+            flash(f'Alerta: {e}', 'danger')
+            return redirect(url_for('register'))
+        finally:
+            db.close()  # Cerrar la conexión a la base de datos
+    return render_template('register.html') 
     
 @app.route('/validate_signature', methods=['POST'])
 def validate_signature():

@@ -130,10 +130,9 @@ def verify_password(sal_almacenada, hash_almacenado, contra):
     hash_value = sha256(sal_almacenada + contra)
     return hash_value == hash_almacenado
 
-def register_user(usuario, contra, conn):
+def register_user(usuario, contra, conn, private_key):
     salt, hashed_salado = hash_con_sal(contra)
-    path = os.path.join(os.path.dirname(__file__), 'private_key.pem')
-    timestamp, signature = generar_sello_criptografico(hashed_salado, cargar_clave_privada(path))
+    timestamp, signature = generar_sello_criptografico(hashed_salado, private_key)
     try:
         with conn:
             conn.execute("INSERT INTO users (username, salt, hash, Timestamp, firma) VALUES (?, ?, ?, ?, ?)", (usuario, salt, hashed_salado, timestamp, sqlite3.Binary(signature)))
@@ -223,8 +222,8 @@ def main():
         public_key = cargar_clave_publica(PUBLIC_KEY_PATH)
         print("Claves cargadas correctamente.")
 
-    ##register_user("Daniel", "password", conn)
-    ##register_user("Admin", "soyadmin", conn)
+    ##register_user("Daniel", "password", conn, private_key)
+    ##register_user("Admin", "soyadmin", conn, private_key)
 
     ##hash_mensaje=sha256("123")
     ##print(hash_mensaje)
