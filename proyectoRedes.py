@@ -201,7 +201,7 @@ conn.execute('''CREATE TABLE IF NOT EXISTS users (
                     salt TEXT NOT NULL,
                     hash TEXT NOT NULL,
                     Timestamp TIMESTAMP,
-                    firma TEXT NOT NULL
+                    firma BLOB NOT NULL
                 )''')
 
 
@@ -223,8 +223,8 @@ def main():
         public_key = cargar_clave_publica(PUBLIC_KEY_PATH)
         print("Claves cargadas correctamente.")
 
-    ## register_user("Daniel", "password", conn)
-    ## register_user("Admin", "soyadmin", conn)
+    register_user("Daniel", "password", conn)
+    register_user("Admin", "soyadmin", conn)
 
     hash_mensaje=sha256("123")
     print(hash_mensaje)
