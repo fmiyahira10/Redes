@@ -223,15 +223,15 @@ def main():
         public_key = cargar_clave_publica(PUBLIC_KEY_PATH)
         print("Claves cargadas correctamente.")
 
-    register_user("Daniel", "password", conn)
-    register_user("Admin", "soyadmin", conn)
+    ##register_user("Daniel", "password", conn)
+    ##register_user("Admin", "soyadmin", conn)
 
-    hash_mensaje=sha256("123")
-    print(hash_mensaje)
-    hash_encriptado=cifrar_datos(public_key,hash_mensaje)
+    ##hash_mensaje=sha256("123")
+    ##print(hash_mensaje)
+    ##hash_encriptado=cifrar_datos(public_key,hash_mensaje)
 
-    print(f"Hash cifrado: {hash_encriptado}")
-    print(f"Hash original: {descifrar_datos(private_key,hash_encriptado)}")
+    ##print(f"Hash cifrado: {hash_encriptado}")
+    ##print(f"Hash original: {descifrar_datos(private_key,hash_encriptado)}")
 
     conn.close()
 main()
