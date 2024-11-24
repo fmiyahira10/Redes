@@ -67,6 +67,11 @@ body {
     background-color: #357ab7;
 }
 
+/* Botón de validar firma */
+.btn-validate {
+    margin-top: 10px; /* Ajusta el margen superior según sea necesario */
+}
+
 /* Enlace de registro */
 .register-link {
     margin-top: 15px;

@@ -103,14 +103,18 @@ def cargar_clave_publica(path):
         return serialization.load_pem_public_key(public_file.read())
     
 def saveK(privateK, publicK): ## Guarda las claves en archivos
-    with open('private_key.pem', 'wb') as private_file:
+    ROOT_DIR = os.path.dirname(__file__)
+    PRIVATE_KEY_PATH = os.path.join(ROOT_DIR, 'private_key.pem')
+    PUBLIC_KEY_PATH = os.path.join(ROOT_DIR, 'public_key.pem')
+
+    with open(PRIVATE_KEY_PATH, 'wb') as private_file:
         private_file.write(privateK.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.TraditionalOpenSSL,
             encryption_algorithm=serialization.NoEncryption()
         ))
     
-    with open('public_key.pem', 'wb') as public_file:
+    with open(PUBLIC_KEY_PATH, 'wb') as public_file:
         public_file.write(publicK.public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
@@ -211,7 +215,7 @@ def main():
     if not os.path.exists(PRIVATE_KEY_PATH) or not os.path.exists(PUBLIC_KEY_PATH):
         print("Claves no encontradas, generando nuevas...")
         private_key, public_key = generar_claves_rsa()
-        saveK(private_key, public_key, PRIVATE_KEY_PATH, PUBLIC_KEY_PATH)
+        saveK(private_key, public_key)
         print(f"Claves generadas y guardadas en:\n{PRIVATE_KEY_PATH}\n{PUBLIC_KEY_PATH}")
     else:
         print("Claves existentes encontradas. Cargando...")
@@ -219,8 +223,8 @@ def main():
         public_key = cargar_clave_publica(PUBLIC_KEY_PATH)
         print("Claves cargadas correctamente.")
 
-    register_user("Daniel", "password", conn)
-    register_user("Admin", "soyadmin", conn)
+    ## register_user("Daniel", "password", conn)
+    ## register_user("Admin", "soyadmin", conn)
 
     hash_mensaje=sha256("123")
     print(hash_mensaje)
