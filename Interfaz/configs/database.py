@@ -1,6 +1,8 @@
 import sqlite3
 import os
 
+db_path = os.path.join(os.path.dirname(__file__), '..', 'BaseDatos', 'usuarios.db')
+
 class Database:
     def __init__(self):
         ##self.db_name = 'Interfaz/BaseDatos/usuarios.db'
@@ -9,7 +11,6 @@ class Database:
     def connect(self):
         """Establecer una conexión a la base de datos."""
         try:
-            db_path = os.path.join(os.path.dirname(__file__), 'BaseDatos', 'usuarios.db')
             self.connection = sqlite3.connect(db_path)
             print("Conexión a la base de datos establecida.")
         except sqlite3.Error as e:

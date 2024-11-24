@@ -25,15 +25,19 @@ def home():
 @app.route('/login', methods=['POST']) 
 def login():
     db = Database()
-    db.connect()
+    db.connect()  # Conectar a la base de datos
+    if not db.connection:
+        flash('Error al conectar a la base de datos.', 'danger')
+        return redirect(url_for('home'))
+    
     username = request.form['username']
     contra = request.form['password']
     hash_salado = hash_con_sal(contra)
     
-    cursor = db.connection.cursor()
-    cursor.execute("SELECT salt, hash FROM users WHERE username = ?", (username,))
-    result = cursor.fetchone() 
     try:
+        cursor = db.connection.cursor()
+        cursor.execute("SELECT salt, hash FROM users WHERE username = ?", (username,))
+        result = cursor.fetchone()
         if result:
             stored_salt, stored_hash = result
             if validar_credenciales(stored_salt, stored_hash, hash_salado):
@@ -43,12 +47,12 @@ def login():
                 flash('Credenciales inválidas.', 'danger')
                 return redirect(url_for('home'))
         else:
-            print("Usuario no encontrado.")
+            flash('Usuario no encontrado.', 'danger')
+            return redirect(url_for('home'))
     except ValueError as e:
         flash(f'Alerta: {e}', 'danger')
         return redirect(url_for('home'))
-    finally:
-        db.close()  # Cerrar la conexión a la base de datos
+    
 
 if __name__ == '__main__':
     app.run(debug=True)
