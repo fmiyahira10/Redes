@@ -4,7 +4,9 @@ from cryptography.hazmat.primitives import serialization, hashes
 import os
 import sqlite3
 from datetime import datetime
-import base64
+import time
+from cryptography.exceptions import InvalidSignature
+from ScriptSQL import validar_credenciales
 
 # Valores iniciales de los registros hash (H)
 H_INICIAL = [
@@ -82,9 +84,9 @@ def sha256(mensaje):
     return ''.join(f'{value:08x}' for value in H)
 
 def hash_con_sal(password):
-    salt = base64.b64decode(os.urandom(16)).decode('utf-8')
-    
-    hash_salado = sha256((salt + password).encode('utf-8'))
+    # sal de 16 bytes
+    salt = os.urandom(16).hex()
+    hash_salado = sha256(salt + password)
     return salt, hash_salado
 
 def generar_claves_rsa():
@@ -92,7 +94,7 @@ def generar_claves_rsa():
     publicK = privateK.public_key()
     return privateK, publicK
 
-def saveK(privateK, publicK):
+def saveK(privateK, publicK): ## Guarda las claves en archivos
     with open('private_key.pem', 'wb') as private_file:
         private_file.write(privateK.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -106,8 +108,14 @@ def saveK(privateK, publicK):
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         ))
 
+def cargar_clave_privada():
+    key_path = os.path.join(os.path.dirname(__file__), 'private_key.pem')
+    with open(key_path, 'rb') as private_file:
+        return serialization.load_pem_private_key(private_file.read(), password=None)
+
 def cargar_clave_publica():
-    with open('public_key.pem', 'rb') as public_file:
+    key_path = os.path.join(os.path.dirname(__file__), 'public_key.pem')
+    with open(key_path, 'rb') as public_file:
         return serialization.load_pem_public_key(public_file.read())
 
 def cifrar_datos(public_key,data):
@@ -122,9 +130,10 @@ def verify_password(sal_almacenada, hash_almacenado, contra):
 
 def register_user(usuario, contra, conn):
     salt, hashed_salado = hash_con_sal(contra)
+    timestamp, signature = generar_sello_criptografico(hashed_salado, cargar_clave_privada())
     try:
         with conn:
-            conn.execute("INSERT INTO users (username, salt, hash) VALUES (?, ?, ?)", (usuario, salt, hashed_salado))
+            conn.execute("INSERT INTO users (username, salt, hash, Timestamp, firma) VALUES (?, ?, ?, ?, ?)", (usuario, salt, hashed_salado, timestamp, sqlite3.Binary(signature)))
         print(f"Usuario {usuario} registrado exitosamente.")
     except sqlite3.IntegrityError:
         print(f"El usuario ya existe.")
@@ -133,7 +142,7 @@ def register_user(usuario, contra, conn):
 
 def login_user(username, password, conn):
     cursor = conn.cursor()
-    cursor.execute("SELECT salt, hash FROM users WHERE username = ?", (username))
+    cursor.execute("SELECT salt, hash FROM users WHERE username = ?", (username,))
     result = cursor.fetchone()
     
     if result:
@@ -145,23 +154,38 @@ def login_user(username, password, conn):
     else:
         print("Usuario no encontrado.")
 
-def resgistrar_timestamp(conn,datos,descripcion=""):
-    data_hash=sha256(datos)
-    timestamp=datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    cursor=conn.cursor()
-    cursor.execute("""INSERT INTO data_timestamps(data_hash,timestamp,description)
-                      VALUES (?,?,?)""",(data_hash,timestamp,descripcion))
-    conn.commit()
-    print(f"Hash registrado: {data_hash} con timestamp: {timestamp}")
+def generar_sello_criptografico(hash_password, private_key):
+    timestamp = str(int(time.time()))  # Epoch time
+    data = f"{hash_password}|{timestamp}"
 
-def verificar_integridad(conn,hash_registrado):
-    cursor=conn.cursor()
-    cursor.execute("SELECT * FROM data_timestamps WHERE data_hash=?",(hash_registrado,))
-    resultado=cursor.fetchone()
-    if resultado:
-        print("El hash coincide con el registro existente.")
-    else:
-        print("El hash no coincide con el registro existente.")
+    # Firmar el dato
+    signature = private_key.sign(
+        data.encode('utf-8'),
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return timestamp, signature
+
+def verificar_sello_criptografico(hash_password, timestamp, signature, public_key):
+    data = f"{hash_password}|{timestamp}"
+    try:
+        public_key.verify(
+            signature,
+            data.encode('utf-8'),
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        print("Integridad validada: el hash no ha sido alterado.")
+        return True
+    except InvalidSignature:
+        print("Error: el hash ha sido modificado o el sello no es válido.")
+        return False
 
 # Separado
 conn = sqlite3.connect(os.path.join(os.path.dirname(__file__), 'Interfaz', 'BaseDatos', 'usuarios.db')) ##NO CAMBIAR
@@ -169,22 +193,32 @@ conn.execute('''CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT NOT NULL UNIQUE,
                     salt TEXT NOT NULL,
-                    hash TEXT NOT NULL
+                    hash TEXT NOT NULL,
+                    Timestamp TIMESTAMP,
+                    firma TEXT NOT NULL
                 )''')
 
 
 def main():
     register_user("Daniel", "password", conn)
+    register_user("Admin", "soyadmin", conn)
     login_user("pene", "123", conn)
     private_key,public_key=generar_claves_rsa()
     saveK(private_key,public_key)
-    resgistrar_timestamp(conn,"Hola mundo")
-    verificar_integridad(conn,"Hola mundo")
-    hash_mensaje=sha256(register_user)
-    hash_encriptado=cifrar_datos(public_key,hash_mensaje)
 
-    print(f"Hash cifrado: {hash_encriptado}")
-    print(f"Hash original: {descifrar_datos(private_key,hash_encriptado)}")
+    cursor = conn.cursor()
+    cursor.execute("SELECT hash, Timestamp, firma FROM users WHERE username = ?", ("Daniel",))
+    result = cursor.fetchone()
+    hash_salado, timestamp, signature = result
+    signature = bytes(signature)
+    verificar_sello_criptografico(hash_salado, timestamp, signature, public_key)
+
+
+    #hash_mensaje=sha256(register_user)
+    ##hash_encriptado=cifrar_datos(public_key,hash_mensaje)
+
+    ##print(f"Hash cifrado: {hash_encriptado}")
+    ##print(f"Hash original: {descifrar_datos(private_key,hash_encriptado)}")
 
     conn.close()
 main()

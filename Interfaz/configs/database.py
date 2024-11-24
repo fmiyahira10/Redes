@@ -1,16 +1,20 @@
 import sqlite3
+import os
 
 class Database:
     def __init__(self):
-        self.db_name = 'Interfaz/BaseDatos/usuarios.db'
+        ##self.db_name = 'Interfaz/BaseDatos/usuarios.db'
         self.connection = None
 
     def connect(self):
         """Establecer una conexión a la base de datos."""
-        if self.connection is None:
-            self.connection = sqlite3.connect(self.db_name)
-            self.connection.row_factory = sqlite3.Row  # Permite acceder a las columnas por nombre
-            print("Conexión establecida.")
+        try:
+            db_path = os.path.join(os.path.dirname(__file__), 'BaseDatos', 'usuarios.db')
+            self.connection = sqlite3.connect(db_path)
+            print("Conexión a la base de datos establecida.")
+        except sqlite3.Error as e:
+            print(f"Error al conectar a la base de datos: {e}")
+            self.connection = None
 
     def close(self):
         """Cerrar la conexión a la base de datos."""
@@ -37,9 +41,5 @@ class Database:
         cursor = self.execute(query, params)
         return cursor.fetchone()
 
-    def get_all_products(self):
-        """Obtener todos los productos de la base de datos."""
-        query = "SELECT nombre, descripcion, precio, foto AS url_imagen FROM Producto"
-        return self.fetchall(query)
     
 
