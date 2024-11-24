@@ -5,7 +5,6 @@ db_path = os.path.join(os.path.dirname(__file__), '..', 'BaseDatos', 'usuarios.d
 
 class Database:
     def __init__(self):
-        ##self.db_name = 'Interfaz/BaseDatos/usuarios.db'
         self.connection = None
 
     def connect(self):

@@ -5,7 +5,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from ScriptSQL import validar_credenciales
-from proyectoRedes import sha256, hash_con_sal, cargar_clave_privada, cargar_clave_publica
+from proyectoRedes import cargar_clave_privada, cargar_clave_publica, login_user
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Necesario para usar flash messages
@@ -32,20 +32,18 @@ def login():
     
     username = request.form['username']
     contra = request.form['password']
-    hash_salado = hash_con_sal(contra)
     
     try:
-        cursor = db.connection.cursor()
-        cursor.execute("SELECT salt, hash FROM users WHERE username = ?", (username,))
-        result = cursor.fetchone()
-        if result:
-            stored_salt, stored_hash = result
-            if validar_credenciales(stored_salt, stored_hash, hash_salado):
-                flash('Inicio de sesión exitoso.', 'success')
-                return render_template('home.html')
-            else:
-                flash('Credenciales inválidas.', 'danger')
-                return redirect(url_for('home'))
+        validar_credenciales(db.connection, username, contra)
+
+        if (login_user(username, contra, db.connection)==1):
+            flash('Inicio de sesión exitoso.', 'success')
+            return render_template('home.html')
+        
+        elif(login_user(username, contra, db.connection)==2):
+            flash('Contraseña incorrecta', 'danger')
+            return redirect(url_for('home'))
+
         else:
             flash('Usuario no encontrado.', 'danger')
             return redirect(url_for('home'))

@@ -149,10 +149,13 @@ def login_user(username, password, conn):
         stored_salt, stored_hash = result
         if verify_password(stored_salt, stored_hash, password):
             print("Inicio de sesión exitoso.")
+            return 1
         else:
             print("Contraseña incorrecta.")
+            return 2
     else:
         print("Usuario no encontrado.")
+        return 3
 
 def generar_sello_criptografico(hash_password, private_key):
     timestamp = str(int(time.time()))  # Epoch time
@@ -200,18 +203,18 @@ conn.execute('''CREATE TABLE IF NOT EXISTS users (
 
 
 def main():
-    register_user("Daniel", "password", conn)
-    register_user("Admin", "soyadmin", conn)
-    login_user("pene", "123", conn)
+    ##register_user("Daniel", "password", conn)
+    ##register_user("Admin", "soyadmin", conn)
+    ##login_user("pene", "123", conn)
     private_key,public_key=generar_claves_rsa()
     saveK(private_key,public_key)
 
-    cursor = conn.cursor()
-    cursor.execute("SELECT hash, Timestamp, firma FROM users WHERE username = ?", ("Daniel",))
-    result = cursor.fetchone()
-    hash_salado, timestamp, signature = result
-    signature = bytes(signature)
-    verificar_sello_criptografico(hash_salado, timestamp, signature, public_key)
+    ##cursor = conn.cursor()
+    ##cursor.execute("SELECT hash, Timestamp, firma FROM users WHERE username = ?", ("Daniel",))
+    ##result = cursor.fetchone()
+    ##hash_salado, timestamp, signature = result
+    ##signature = bytes(signature)
+    ##verificar_sello_criptografico(hash_salado, timestamp, signature, public_key)
 
 
     #hash_mensaje=sha256(register_user)
