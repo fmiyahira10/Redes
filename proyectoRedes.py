@@ -160,9 +160,9 @@ def login_user(username, password, conn):
         return 3
 
 def generar_sello_criptografico(hash_password, private_key):
-    timestamp = str(int(time.time()))  # Epoch time
+    timestamp = datetime.now().isoformat()
     data = f"{hash_password}|{timestamp}"
-
+    
     # Firmar el dato
     signature = private_key.sign(
         data.encode('utf-8'),
