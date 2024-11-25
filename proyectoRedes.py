@@ -4,9 +4,7 @@ from cryptography.hazmat.primitives import serialization, hashes
 import os
 import sqlite3
 from datetime import datetime
-import time
 from cryptography.exceptions import InvalidSignature
-from ScriptSQL import validar_credenciales
 
 # Valores iniciales de los registros hash (H)
 H_INICIAL = [
@@ -127,15 +125,19 @@ def descifrar_datos(private_key, encrypted_data): ##Descifra los datos con la cl
     return private_key.decrypt(encrypted_data, padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(), label=None)).decode('utf-8')
 
 def verify_password(sal_almacenada, hash_almacenado, contra):
+    
     hash_value = sha256(sal_almacenada + contra)
     return hash_value == hash_almacenado
 
 def register_user(usuario, contra, conn, private_key):
     salt, hashed_salado = hash_con_sal(contra)
     timestamp, signature = generar_sello_criptografico(hashed_salado, private_key)
+
+    path1 = os.path.join(os.path.dirname(__file__), 'public_key.pem')
+    public_key = cargar_clave_publica(path1)
     try:
         with conn:
-            conn.execute("INSERT INTO users (username, salt, hash, Timestamp, firma) VALUES (?, ?, ?, ?, ?)", (usuario, salt, hashed_salado, timestamp, sqlite3.Binary(signature)))
+            conn.execute("INSERT INTO users (username, salt, hash, Timestamp, firma) VALUES (?, ?, ?, ?, ?)", (usuario, salt, cifrar_datos(public_key,hashed_salado), timestamp, sqlite3.Binary(signature)))
         print(f"Usuario {usuario} registrado exitosamente.")
     except sqlite3.IntegrityError:
         print(f"El usuario ya existe.")
@@ -147,9 +149,12 @@ def login_user(username, password, conn):
     cursor.execute("SELECT salt, hash FROM users WHERE username = ?", (username,))
     result = cursor.fetchone()
     
+    path2 = os.path.join(os.path.dirname(__file__), 'private_key.pem')
+    private_key = cargar_clave_privada(path2)
+
     if result:
         stored_salt, stored_hash = result
-        if verify_password(stored_salt, stored_hash, password):
+        if verify_password(stored_salt, descifrar_datos(private_key,stored_hash), password):
             print("Inicio de sesión exitoso.")
             return 1
         else:
@@ -175,7 +180,10 @@ def generar_sello_criptografico(hash_password, private_key):
     return timestamp, signature
 
 def verificar_sello_criptografico(hash_password, timestamp, signature, public_key):
-    data = f"{hash_password}|{timestamp}"
+    PRIVATE_KEY_PATH = os.path.join(os.path.dirname(__file__), 'private_key.pem')
+    private_key = cargar_clave_privada(PRIVATE_KEY_PATH)
+    descifrado=descifrar_datos(private_key,hash_password)
+    data = f"{descifrado}|{timestamp}"
     try:
         public_key.verify(
             signature,
@@ -224,6 +232,7 @@ def main():
 
     ##register_user("Daniel", "password", conn, private_key)
     ##register_user("Admin", "soyadmin", conn, private_key)
+
 
     ##hash_mensaje=sha256("123")
     ##print(hash_mensaje)

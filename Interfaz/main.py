@@ -5,7 +5,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from ScriptSQL import validar_credenciales
-from proyectoRedes import cargar_clave_privada, cargar_clave_publica, login_user, register_user, verificar_sello_criptografico
+from proyectoRedes import cargar_clave_privada, cargar_clave_publica, login_user, register_user, verificar_sello_criptografico, descifrar_datos
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Necesario para usar flash messages
@@ -66,7 +66,9 @@ def register():
         username = request.form['username']
         password = request.form['password']
         
+        
         try:
+            validar_credenciales(db.connection, username, password)
             register_user(username, password, db.connection, private_key)
             flash('Usuario registrado exitosamente.', 'success')
             return redirect(url_for('home'))
